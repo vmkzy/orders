@@ -12,7 +12,10 @@ import (
 	"github.com/gulmix/orders/internal"
 	"github.com/gulmix/orders/internal/config"
 	healthController "github.com/gulmix/orders/internal/controllers/http/health"
+	orderController "github.com/gulmix/orders/internal/controllers/http/order"
+	orderRepository "github.com/gulmix/orders/internal/repositories/order"
 	httpServer "github.com/gulmix/orders/internal/servers/http"
+	orderService "github.com/gulmix/orders/internal/services/order"
 )
 
 func main() {
@@ -38,7 +41,10 @@ func run() error {
 	// Никаких глобальных переменных и пакетов-синглтонов.
 	health := healthController.NewController()
 
-	srv := httpServer.NewServer(cfg.HTTPAddr, internal.InitRoutes(logger, health), logger, cfg.ShutdownTimeout)
+	repo := orderRepository.NewMemory()
+	svc := orderService.NewService(repo)
+	orders := orderController.NewController(svc)
+	srv := httpServer.NewServer(cfg.HTTPAddr, internal.InitRoutes(logger, health, orders), logger, cfg.ShutdownTimeout)
 
 	return srv.Run()
 }
