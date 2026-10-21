@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	healthController "github.com/gulmix/orders/internal/controllers/http/health"
+	orderController "github.com/gulmix/orders/internal/controllers/http/order"
 	"github.com/gulmix/orders/internal/middlewares"
 )
 
@@ -18,11 +19,13 @@ import (
 // wildcard в паттерне («POST /orders», «GET /orders/{id}»), поэтому внешний
 // роутер на онбординге не нужен. Значение wildcard достаётся из запроса
 // через r.PathValue("id").
-func InitRoutes(logger *slog.Logger, health *healthController.Controller) http.Handler {
+func InitRoutes(logger *slog.Logger, health *healthController.Controller, orders *orderController.Controller) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", health.Health)
 
+	mux.HandleFunc("POST /orders", orders.Create)
+	mux.HandleFunc("GET /orders/{id}", orders.Get)
 	// Порядок обёрток важен, и читается он снизу вверх: request id появляется
 	// первым, чтобы попасть и в лог, и в ответ; логирование идёт следующим и
 	// потому видит любой запрос, включая тот, в котором хендлер паникует;
@@ -32,6 +35,5 @@ func InitRoutes(logger *slog.Logger, health *healthController.Controller) http.H
 	h = middlewares.Recover(logger, h)
 	h = middlewares.Logging(logger, h)
 	h = middlewares.RequestID(h)
-
 	return h
 }
